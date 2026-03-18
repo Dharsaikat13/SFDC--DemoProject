@@ -4,6 +4,7 @@ pipeline {
     environment {
         SF_USERNAME     = credentials('sfdc_user')
         SF_CONSUMER_KEY = credentials('consumer_key')
+        SF_CLI          = 'C:/Program Files/sf/bin/sf.cmd'
     }
 
     stages {
@@ -17,9 +18,9 @@ pipeline {
 
         stage('Authenticate Salesforce') {
             steps {
-                withCredentials([file(credentialsId: 'jwt_key', variable: 'JWT_KEY_FILE')]) {
+                withCredentials([file(credentialsId: 'jwt_key_file', variable: 'JWT_KEY_FILE')]) {
                     bat """
-                    "C:/Program Files/sf/bin/sf.cmd" org login jwt ^
+                    "%SF_CLI%" org login jwt ^
                     --client-id %SF_CONSUMER_KEY% ^
                     --jwt-key-file "%JWT_KEY_FILE%" ^
                     --username %SF_USERNAME% ^
@@ -33,8 +34,7 @@ pipeline {
         stage('Deploy to Org') {
             steps {
                 bat """
-                "C:/Program Files/sf/bin/sf.cmd" project deploy start ^
-                --source-dir force-app ^
+                "%SF_CLI%" project deploy start ^
                 --target-org projectdemosfdc ^
                 --wait 10
                 """
@@ -44,7 +44,7 @@ pipeline {
         stage('Run Tests') {
             steps {
                 bat """
-                "C:/Program Files/sf/bin/sf.cmd" apex run test ^
+                "%SF_CLI%" apex run test ^
                 --target-org projectdemosfdc ^
                 --wait 10 ^
                 --result-format human
