@@ -35,6 +35,7 @@ pipeline {
             steps {
                 bat """
                 "%SF_CLI%" project deploy start ^
+                --metadata "*" ^
                 --target-org projectdemosfdc ^
                 --wait 10
                 """
