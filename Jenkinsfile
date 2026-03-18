@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        SF_USERNAME = credentials('sf-username')
-        SF_CONSUMER_KEY = credentials('sf-consumer-key')
+        SF_USERNAME = credentials('user_name')
+        SF_CONSUMER_KEY = credentials('consumer_key')
     }
 
     stages {
@@ -17,11 +17,13 @@ pipeline {
         stage('Authenticate Salesforce') {
             steps {
                 sh '''
-                sfdx auth:jwt:grant \
-                --clientid $SF_CONSUMER_KEY \
-                --jwtkeyfile server.key \
+                sf force:auth:jwt:grant \
+                --client-id $SF_CONSUMER_KEY \
+                --jwt-key-file server.key \
                 --username $SF_USERNAME \
-                --instanceurl https://login.salesforce.com
+                --instance-url https://login.salesforce.com \
+                --set-default-dev-hub \
+                --alias projectdemosfdc
                 '''
             }
         }
@@ -29,10 +31,10 @@ pipeline {
         stage('Deploy to Org') {
             steps {
                 sh '''
-                sfdx force:source:deploy \
-                -p force-app \
-                -u $SF_USERNAME \
-                -w 10
+                sf project deploy start \
+                --source-dir force-app \
+                --target-org $SF_USERNAME \
+                --wait 10
                 '''
             }
         }
@@ -40,10 +42,10 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
-                sfdx force:apex:test:run \
-                -u $SF_USERNAME \
-                -w 10 \
-                -r human
+                sf apex run test \
+                --target-org $SF_USERNAME \
+                --wait 10 \
+                --result-format human
                 '''
             }
         }
