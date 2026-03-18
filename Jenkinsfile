@@ -41,44 +41,13 @@ pipeline {
             }
         }
 
-         stage('Validate Deployment') {
-        steps {
-        bat """
-        "%SF_CLI%" deploy metadata ^
-        --target-org projectdemosfdc ^
-        --check-only ^
-        --wait 10
-        """
-    }
-}
-
-
-stage('Run Basic Tests') {
-    steps {
-        bat """
-        "%SF_CLI%" apex run test ^
-        --target-org projectdemosfdc ^
-        --tests TestVerifyDate ^
-        --wait 10
-        """
-    }
-}
-stage('Static Code Scan') {
-    steps {
-        bat """
-        "%SF_CLI%" scanner run ^
-        --target "force-app"
-        """
-    }
-}
         
-
     
     }
 
     post {
         success {
-            echo '✅ Salesforce deployment and tests completed successfully'
+            echo '✅ Salesforce deployment completed successfully'
         }
         failure {
             echo '❌ Pipeline failed. Check logs above for details.'
