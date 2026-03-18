@@ -18,7 +18,7 @@ pipeline {
 
         stage('Authenticate Salesforce') {
             steps {
-                withCredentials([file(credentialsId: 'jwt_key', variable: 'JWT_KEY_FILE')]) {
+                withCredentials([file(credentialsId: 'jwt_key_file', variable: 'JWT_KEY_FILE')]) {
                     bat """
                     "%SF_CLI%" org login jwt ^
                     --client-id %SF_CONSUMER_KEY% ^
@@ -34,8 +34,7 @@ pipeline {
         stage('Deploy to Org') {
             steps {
                 bat """
-                "%SF_CLI%" project deploy start ^
-                --metadata "*" ^
+                "%SF_CLI%" deploy metadata ^
                 --target-org projectdemosfdc ^
                 --wait 10
                 """
@@ -63,3 +62,4 @@ pipeline {
         }
     }
 }
+``
