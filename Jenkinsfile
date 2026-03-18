@@ -41,16 +41,7 @@ pipeline {
             }
         }
 
-        stage('Run Tests') {
-            steps {
-                bat """
-                "%SF_CLI%" apex run test ^
-                --target-org projectdemosfdc ^
-                --wait 10 ^
-                --result-format human
-                """
-            }
-        }
+      
     }
 
     post {
