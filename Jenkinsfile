@@ -33,7 +33,7 @@ pipeline {
         stage('Deploy to Org') {
             steps {
                 bat """
-                "C:\\Program Files\\Salesforce CLI\\bin\\sf.cmd" project deploy start ^
+                "C:/Program Files/sf/bin/sf.cmd" project deploy start ^
                 --source-dir force-app ^
                 --target-org projectdemosfdc ^
                 --wait 10
@@ -44,7 +44,7 @@ pipeline {
         stage('Run Tests') {
             steps {
                 bat """
-                "C:\\Program Files\\Salesforce CLI\\bin\\sf.cmd" apex run test ^
+                "C:/Program Files/sf/bin/sf.cmd" apex run test ^
                 --target-org projectdemosfdc ^
                 --wait 10 ^
                 --result-format human
