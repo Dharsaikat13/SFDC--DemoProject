@@ -19,7 +19,7 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'jwt_key_file', variable: 'JWT_KEY_FILE')]) {
                     bat """
-                    "C:\Program Files\sf\bin\sf.cmd" org login jwt ^
+                    "C:/Program Files/sf/bin/sf.cmd" org login jwt ^
                     --client-id %SF_CONSUMER_KEY% ^
                     --jwt-key-file "%JWT_KEY_FILE%" ^
                     --username %SF_USERNAME% ^
