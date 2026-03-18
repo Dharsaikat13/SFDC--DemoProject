@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        SF_USERNAME = credentials('user_name')
+        SF_USERNAME = credentials('sfdc_user')
         SF_CONSUMER_KEY = credentials('consumer_key')
     }
 
