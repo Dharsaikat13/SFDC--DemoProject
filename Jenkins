@@ -1,0 +1,51 @@
+pipeline {
+    agent any
+
+    environment {
+        SF_USERNAME = credentials('sf-username')
+        SF_CONSUMER_KEY = credentials('sf-consumer-key')
+    }
+
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                git 'https://github.com/Dharsaikat13/SFDC--DemoProject.git'
+            }
+        }
+
+        stage('Authenticate Salesforce') {
+            steps {
+                sh '''
+                sfdx auth:jwt:grant \
+                --clientid $SF_CONSUMER_KEY \
+                --jwtkeyfile server.key \
+                --username $SF_USERNAME \
+                --instanceurl https://login.salesforce.com
+                '''
+            }
+        }
+
+        stage('Deploy to Org') {
+            steps {
+                sh '''
+                sfdx force:source:deploy \
+                -p force-app \
+                -u $SF_USERNAME \
+                -w 10
+                '''
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh '''
+                sfdx force:apex:test:run \
+                -u $SF_USERNAME \
+                -w 10 \
+                -r human
+                '''
+            }
+        }
+    }
+}
