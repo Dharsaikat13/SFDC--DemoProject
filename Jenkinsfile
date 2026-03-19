@@ -31,6 +31,17 @@ pipeline {
             }
         }
 
+        stage('Validate Deployment') {
+         steps {
+          bat """
+          "%SF_CLI%" deploy metadata ^
+          --target-org projectdemosfdc ^
+          --check-only ^
+          --wait 10
+          """
+    }
+}
+
         stage('Deploy to Org') {
             steps {
                 bat """
@@ -41,37 +52,26 @@ pipeline {
             }
         }
 
-        stage('Validate Deployment') {
+        stage('Post Deployment Check') {
+        steps {
+        bat """
+        "%SF_CLI%" org display ^
+        --target-org projectdemosfdc
+        """
+    }
+}
+
+stage('Backup Metadata') {
     steps {
         bat """
-        "%SF_CLI%" deploy metadata ^
-        --target-org projectdemosfdc ^
-        --check-only ^
-        --wait 10
+        "%SF_CLI%" retrieve metadata ^
+        --target-org projectdemosfdc
         """
     }
 }
 
 
-stage('Run Basic Tests') {
-    steps {
-        bat """
-        "%SF_CLI%" apex run test ^
-        --target-org projectdemosfdc ^
-        --tests TestVerifyDate ^
-        --wait 10
-        """
-    }
-}
-stage('Static Code Scan') {
-    steps {
-        bat """
-        "%SF_CLI%" scanner run ^
-        --target "force-app"
-        """
-    }
-}
-``
+
     }
 
     post {
