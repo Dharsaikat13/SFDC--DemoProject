@@ -16,8 +16,27 @@ pipeline {
             }
         }
 
-stage('Check for Changes') {
+        stage('Install Salesforce Packages') {
     steps {
+        bat """
+        echo Installing Salesforce CLI plugins and project dependencies...
+
+        REM Install project dependencies (if package.json exists)
+        if exist package.json (
+            npm install
+        )
+
+        REM Install Salesforce CLI plugins (example)
+        "%SF_CLI%" plugins install @salesforce/plugin-deploy-retrieve
+        "%SF_CLI%" plugins install sfdx-git-delta
+
+        echo Installation completed.
+        """
+    }
+}
+
+        stage('Check for Changes') {
+        steps {
         script {
             if (currentBuild.changeSets.size() == 0) {
                 echo "⚠️ No changes detected. Skipping deployment..."
