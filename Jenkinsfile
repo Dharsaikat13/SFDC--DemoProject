@@ -36,7 +36,7 @@ pipeline {
           bat """
           "%SF_CLI%" deploy metadata ^
           --target-org projectdemosfdc ^
-          --check-only ^
+          --dry-run ^
           --wait 10
           """
     }
