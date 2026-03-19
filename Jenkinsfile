@@ -16,6 +16,25 @@ pipeline {
             }
         }
 
+        stage('Check for Changes') {
+    steps {
+        script {
+            def changes = bat(
+                script: 'git diff --name-only HEAD~1 HEAD',
+                returnStdout: true
+            ).trim()
+
+            if (changes) {
+                echo "✅ Changes detected:\n${changes}"
+            } else {
+                echo "⚠️ No changes detected. Skipping deployment..."
+                currentBuild.result = 'SUCCESS'
+                error('Stopping pipeline as no changes were found.')
+            }
+        }
+    }
+}
+
         stage('Authenticate Salesforce') {
             steps {
                 withCredentials([file(credentialsId: 'jwt_key', variable: 'JWT_KEY_FILE')]) {
