@@ -52,6 +52,7 @@ pipeline {
             }
         }
 
+<<<<<<< HEAD
         stage('Post Deployment Check') {
         steps {
         bat """
@@ -72,11 +73,15 @@ stage('Backup Metadata') {
 
 
 
+=======
+        
+    
+>>>>>>> 5c6f1e02e32e6d3243beb17feee12533c792e726
     }
 
     post {
         success {
-            echo '✅ Salesforce deployment and tests completed successfully'
+            echo '✅ Salesforce deployment completed successfully'
         }
         failure {
             echo '❌ Pipeline failed. Check logs above for details.'
