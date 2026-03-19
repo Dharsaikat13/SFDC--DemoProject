@@ -16,20 +16,15 @@ pipeline {
             }
         }
 
-        stage('Check for Changes') {
+stage('Check for Changes') {
     steps {
         script {
-            def changes = bat(
-                script: 'git diff --name-only HEAD~1 HEAD',
-                returnStdout: true
-            ).trim()
-
-            if (changes) {
-                echo "✅ Changes detected:\n${changes}"
-            } else {
+            if (currentBuild.changeSets.size() == 0) {
                 echo "⚠️ No changes detected. Skipping deployment..."
                 currentBuild.result = 'SUCCESS'
                 error('Stopping pipeline as no changes were found.')
+            } else {
+                echo "✅ Changes detected in this build."
             }
         }
     }
