@@ -65,7 +65,9 @@ stage('Backup Metadata') {
     steps {
         bat """
         "%SF_CLI%" retrieve metadata ^
-        --target-org projectdemosfdc
+        --target-org projectdemosfdc ^
+        --manifest manifest/package.xml ^
+        --wait 10
         """
     }
 }
