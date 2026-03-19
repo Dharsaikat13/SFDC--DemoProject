@@ -1,0 +1,28 @@
+<template>
+    <template if:true={accountId}>
+    <lightning-card title="Account Detail">
+        <div slot="actions">
+        <lightning-button label="View" icon-name="utility:preview" onclick={handleView}></lightning-button>
+                <lightning-button label="Edit" icon-name="utility:edit" onclick={handleEdit}></lightning-button>
+        </div>
+        <lightning-record-view-form
+        record-id={accountId}
+ object-api-name="Account">
+<div class="slds-box">
+            <lightning-output-field field-name="Name"></lightning-output-field>
+            <lightning-output-field field-name="Type"></lightning-output-field>
+            <lightning-output-field field-name="Industry"></lightning-output-field>
+            <lightning-output-field field-name="AnnualRevenue"></lightning-output-field>
+            </div>
+            <div class="slds-box">
+            <lightning-output-field field-name={cityField}></lightning-output-field>
+            <lightning-output-field field-name={countryField}></lightning-output-field>
+            </div>
+        </lightning-record-view-form>
+
+        <div>
+            <c-account-map record-id={accountId}></c-account-map>
+        </div>
+    </lightning-card>
+    </template>
+</template>
