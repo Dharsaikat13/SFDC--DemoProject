@@ -1,6 +1,14 @@
 pipeline {
     agent any
 
+    parameters {
+        choice(
+            name: 'GIT_BRANCH',
+            choices: ['main', 'develop', 'uat'],
+            description: 'Select the Git branch to build'
+        )
+    }
+
     environment {
         SF_USERNAME     = credentials('sfdc_user')
         SF_CONSUMER_KEY = credentials('consumer_key')
@@ -9,47 +17,25 @@ pipeline {
 
     stages {
 
-        stage('Checkout Code') {
+        stage('Code Checkout') {
             steps {
-                git branch: 'main',
+                echo "Checking out branch: ${params.GIT_BRANCH}"
+                git branch: "${params.GIT_BRANCH}",
                     url: 'https://github.com/Dharsaikat13/SFDC--DemoProject.git'
             }
         }
 
-        stage('Install Salesforce Packages') {
-    steps {
-        bat """
-        echo Installing Salesforce CLI plugins and project dependencies...
-
-        REM Install project dependencies (if package.json exists)
-        if exist package.json (
-            npm install
-        )
-
-        REM Install Salesforce CLI plugins (example)
-        "%SF_CLI%" plugins install @salesforce/plugin-deploy-retrieve
-        "%SF_CLI%" plugins install sfdx-git-delta
-
-        echo Installation completed.
-        """
-    }
-}
-
-        stage('Check for Changes') {
-        steps {
-        script {
-            if (currentBuild.changeSets.size() == 0) {
-                echo "⚠️ No changes detected. Skipping deployment..."
-                currentBuild.result = 'SUCCESS'
-                error('Stopping pipeline as no changes were found.')
-            } else {
-                echo "✅ Changes detected in this build."
+        stage('Install Salesforce CLI Plugins') {
+            steps {
+                bat """
+                echo Installing Salesforce CLI plugins
+                "%SF_CLI%" plugins install @salesforce/plugin-deploy-retrieve
+                "%SF_CLI%" plugins install sfdx-git-delta
+                """
             }
         }
-    }
-}
 
-        stage('Authenticate Salesforce') {
+        stage('Authorization to Org') {
             steps {
                 withCredentials([file(credentialsId: 'jwt_key', variable: 'JWT_KEY_FILE')]) {
                     bat """
@@ -65,15 +51,15 @@ pipeline {
         }
 
         stage('Validate Deployment') {
-         steps {
-          bat """
-          "%SF_CLI%" deploy metadata ^
-          --target-org projectdemosfdc ^
-          --dry-run ^
-          --wait 10
-          """
-    }
-}
+            steps {
+                bat """
+                "%SF_CLI%" deploy metadata ^
+                --target-org projectdemosfdc ^
+                --dry-run ^
+                --wait 10
+                """
+            }
+        }
 
         stage('Deploy to Org') {
             steps {
@@ -84,37 +70,14 @@ pipeline {
                 """
             }
         }
-
-        stage('Post Deployment Check') {
-        steps {
-        bat """
-        "%SF_CLI%" org display ^
-        --target-org projectdemosfdc
-        """
-    }
-}
-
-stage('Backup Metadata') {
-    steps {
-        bat """
-        "%SF_CLI%" retrieve metadata ^
-        --target-org projectdemosfdc ^
-        --manifest manifest/package.xml ^
-        --wait 10
-        """
-    }
-}
-
-
-
     }
 
     post {
         success {
-            echo '✅ Salesforce deployment and tests completed successfully'
+            echo "Deployment successful for branch ${params.GIT_BRANCH}"
         }
         failure {
-            echo '❌ Pipeline failed. Check logs above for details.'
+            echo "Deployment failed for branch ${params.GIT_BRANCH}"
         }
     }
 }
