@@ -4,7 +4,7 @@ pipeline {
     parameters {
         choice(
             name: 'GIT_BRANCH',
-            choices: ['main', 'develop', 'uat'],
+            choices: ['main', 'develop'],
             description: 'Select the Git branch to build'
         )
     }
