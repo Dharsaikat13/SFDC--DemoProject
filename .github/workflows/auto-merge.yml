@@ -17,6 +17,11 @@ jobs:
       github.event.pull_request.head.ref == 'develop'
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.base.ref }}
+          
       - name: Enable auto merge
         uses: peter-evans/enable-pull-request-automerge@v3
         with:
