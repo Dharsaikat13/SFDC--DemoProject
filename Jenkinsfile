@@ -27,6 +27,53 @@ pipeline {
             }
         }
 
+         stage('Detect PR') {
+            steps {
+                script {
+
+                    // Only run for PR builds
+                    if (!env.CHANGE_ID) {
+                        echo "Not a PR build → skipping"
+                        currentBuild.result = 'NOT_BUILT'
+                        return
+                    }
+
+                    echo "PR detected: ${env.CHANGE_ID}"
+
+                    def approved = false
+
+                    withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
+
+                        def response = sh(
+                            script: """
+                            curl -s -H "Authorization: token $TOKEN" \
+                            https://api.github.com/repos/YOUR_ORG/sfdc-poc-repo/pulls/${env.CHANGE_ID}/reviews
+                            """,
+                            returnStdout: true
+                        ).trim()
+
+                        def reviews = readJSON text: response
+
+                        for (r in reviews) {
+                            if (r.state == "APPROVED") {
+                                approved = true
+                            }
+                        }
+                    }
+
+                    if (!approved) {
+                        echo "❌ PR NOT approved → skipping build"
+                        currentBuild.result = 'NOT_BUILT'
+                        return
+                    }
+
+                    echo "✅ PR APPROVED → continuing pipeline"
+                }
+            }
+
+    
+        
+
         stage('Install Salesforce CLI Plugins') {
             steps {
                 bat """
