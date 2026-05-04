@@ -67,7 +67,7 @@ pipeline {
                         return
                     }
 
-                    echo "PR APPROVED → continuing pipeline"
+                    echo "PR APPROVED continuing pipeline"
                 }
             }
 
