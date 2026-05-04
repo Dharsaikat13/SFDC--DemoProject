@@ -1,16 +1,11 @@
 pipeline {
     agent any
 
-    parameters {
-        choice(
-            name: 'GIT_BRANCH',
-            choices: ['main', 'develop'],
-            description: 'Select the Git branch to build'
-        )
-    }
-   triggers {
+    // No pollSCM here — Multibranch scans handle triggering
+    triggers {
         pollSCM('H/1 * * * *')
     }
+
     environment {
         SF_USERNAME     = credentials('sfdc_user')
         SF_CONSUMER_KEY = credentials('consumer_key')
@@ -19,61 +14,58 @@ pipeline {
 
     stages {
 
-        stage('Code Checkout') {
-            steps {
-                echo "Checking out branch: ${params.GIT_BRANCH}"
-                git branch: "${params.GIT_BRANCH}",
-                    url: 'https://github.com/Dharsaikat13/SFDC--DemoProject.git'
-            }
-        }
-
-         stage('Detect PR') {
+        stage('PR Approval Check') {
             steps {
                 script {
-
-                    // Only run for PR builds
+                    // CHANGE_ID is only set for PR builds in Multibranch
                     if (!env.CHANGE_ID) {
-                        echo "Not a PR build → skipping"
-                        currentBuild.result = 'NOT_BUILT'
+                        echo "Not a PR build — this is a direct branch build"
+                        // Allow direct branch builds to proceed
+                        // OR block them: error('Only PR builds allowed')
                         return
                     }
 
-                    echo "PR detected: ${env.CHANGE_ID}"
+                    echo "PR #${env.CHANGE_ID} detected — checking for approval..."
 
                     def approved = false
-
                     withCredentials([string(credentialsId: 'github-token', variable: 'TOKEN')]) {
-
-                        def response = sh(
+                        def response = bat(
                             script: """
-                            curl -s -H "Authorization: token $TOKEN" \
-                            https://api.github.com/repos/Dharsaikat13/SFDC--DemoProject/pulls/${env.CHANGE_ID}/reviews
+                            curl -s -H "Authorization: token %TOKEN%" ^
+                            https://api.github.com/repos/Dharsaikat13/SFDC--DemoProject/pulls/%CHANGE_ID%/reviews
                             """,
                             returnStdout: true
                         ).trim()
 
-                        def reviews = readJSON text: response
+                        // Strip Windows bat header lines before parsing JSON
+                        def jsonStart = response.indexOf('[')
+                        def jsonText  = response.substring(jsonStart)
+                        def reviews   = readJSON text: jsonText
 
-                        for (r in reviews) {
-                            if (r.state == "APPROVED") {
+                        for (def r : reviews) {
+                            if (r.state == 'APPROVED') {
                                 approved = true
+                                break
                             }
                         }
                     }
 
                     if (!approved) {
-                        echo "PR NOT approved → skipping build"
-                        currentBuild.result = 'NOT_BUILT'
-                        return
+                        echo "PR #${env.CHANGE_ID} is NOT approved — blocking deploy"
+                        currentBuild.result = 'ABORTED'
+                        error("PR must be approved before deploying")
                     }
 
-                    echo "PR APPROVED continuing pipeline"
+                    echo "PR #${env.CHANGE_ID} is APPROVED — proceeding"
                 }
             }
+        }
 
-         }
-
-  
+        stage('Code Checkout') {
+            steps {
+                checkout scm
+            }
+        }
 
         stage('Authorization to Org') {
             steps {
@@ -90,9 +82,11 @@ pipeline {
             }
         }
 
-  
-
         stage('Deploy to Org') {
+            // Only deploy when targeting main
+            when {
+                expression { env.CHANGE_TARGET == 'main' || env.BRANCH_NAME == 'main' }
+            }
             steps {
                 bat """
                 "%SF_CLI%" deploy metadata ^
@@ -104,11 +98,8 @@ pipeline {
     }
 
     post {
-        success {
-            echo "Deployment successful for branch ${params.GIT_BRANCH}"
-        }
-        failure {
-            echo "Deployment failed for branch ${params.GIT_BRANCH}"
-        }
+        success { echo "Deployment successful" }
+        failure { echo "Deployment failed" }
+        always  { cleanWs() }
     }
 }
