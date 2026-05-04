@@ -62,12 +62,12 @@ pipeline {
                     }
 
                     if (!approved) {
-                        echo "❌ PR NOT approved → skipping build"
+                        echo "PR NOT approved → skipping build"
                         currentBuild.result = 'NOT_BUILT'
                         return
                     }
 
-                    echo "✅ PR APPROVED → continuing pipeline"
+                    echo "PR APPROVED → continuing pipeline"
                 }
             }
 
