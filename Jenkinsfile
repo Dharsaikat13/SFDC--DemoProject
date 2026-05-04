@@ -8,7 +8,9 @@ pipeline {
             description: 'Select the Git branch to build'
         )
     }
-
+   triggers {
+        pollSCM('H/5 * * * *')
+    }
     environment {
         SF_USERNAME     = credentials('sfdc_user')
         SF_CONSUMER_KEY = credentials('consumer_key')
