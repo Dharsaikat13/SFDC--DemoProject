@@ -72,19 +72,6 @@ pipeline {
                 }
             }
 
-    
-        
-
-        stage('Install Salesforce CLI Plugins') {
-            steps {
-                bat """
-                echo Installing Salesforce CLI plugins
-                "%SF_CLI%" plugins install @salesforce/plugin-deploy-retrieve
-                "%SF_CLI%" plugins install sfdx-git-delta
-                """
-            }
-        }
-
         stage('Authorization to Org') {
             steps {
                 withCredentials([file(credentialsId: 'jwt_key', variable: 'JWT_KEY_FILE')]) {
@@ -100,16 +87,7 @@ pipeline {
             }
         }
 
-        stage('Validate Deployment') {
-            steps {
-                bat """
-                "%SF_CLI%" deploy metadata ^
-                --target-org projectdemosfdc ^
-                --dry-run ^
-                --wait 10
-                """
-            }
-        }
+  
 
         stage('Deploy to Org') {
             steps {
