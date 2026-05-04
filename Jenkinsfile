@@ -47,7 +47,7 @@ pipeline {
                         def response = sh(
                             script: """
                             curl -s -H "Authorization: token $TOKEN" \
-                            https://api.github.com/repos/YOUR_ORG/sfdc-poc-repo/pulls/${env.CHANGE_ID}/reviews
+                            https://api.github.com/repos/Dharsaikat13/SFDC--DemoProject/pulls/${env.CHANGE_ID}/reviews
                             """,
                             returnStdout: true
                         ).trim()
