@@ -1,0 +1,71 @@
+name: Auto merge on approval
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    if: github.event.review.state == 'approved'
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Auto merge PR
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo  = context.repo.repo;
+            const prNum = context.payload.pull_request.number;
+
+            console.log(`PR #${prNum} approved — checking reviews...`);
+
+            const { data: reviews } = await github.rest.pulls.listReviews({
+              owner, repo, pull_number: prNum
+            });
+
+            const latest = {};
+            for (const r of reviews) {
+              latest[r.user.login] = r.state;
+            }
+            console.log('Review states:', JSON.stringify(latest));
+
+            const rejected = Object.values(latest)
+              .some(s => s === 'CHANGES_REQUESTED');
+
+            if (rejected) {
+              core.setFailed('Changes requested — merge blocked');
+              return;
+            }
+
+            const approved = Object.values(latest)
+              .some(s => s === 'APPROVED');
+
+            if (!approved) {
+              console.log('No approval found — skipping');
+              return;
+            }
+
+            const { data: pr } = await github.rest.pulls.get({
+              owner, repo, pull_number: prNum
+            });
+
+            if (pr.state !== 'open') {
+              console.log('PR already closed — skipping');
+              return;
+            }
+
+            await github.rest.pulls.merge({
+              owner, repo,
+              pull_number: prNum,
+              merge_method: 'merge',
+              commit_title: `Merge pull request #${prNum} from ${pr.head.ref}`,
+              commit_message: `Auto-merged after approval`
+            });
+
+            console.log(`PR #${prNum} merged into main`);
