@@ -22,7 +22,6 @@ pipeline {
                         returnStdout: true
                     ).trim()
                     echo "Last commit message: ${msg}"
-
                     if (msg.contains('[skip ci]')) {
                         currentBuild.result = 'NOT_BUILT'
                         error('CI bot commit — skipping pipeline')
@@ -34,57 +33,69 @@ pipeline {
         stage('PR Approval Check') {
             steps {
                 script {
-                    // Read the last commit message
                     def commitMsg = bat(
                         script: '@git log -1 --pretty=%%B',
                         returnStdout: true
                     ).trim()
 
-                    echo "Commit: ${commitMsg}"
+                    echo "Commit message: ${commitMsg}"
 
-                    // Extract PR number from "Merge pull request #N from ..."
-                    def prMatch = commitMsg =~ /Merge pull request #(\d+)/
-                    if (!prMatch) {
+                    // FIX 1: extract PR number as String immediately
+                    // do NOT store the Matcher object — it is not serializable
+                    def prNumber = null
+                    def matcher  = commitMsg =~ /Merge pull request #(\d+)/
+                    if (matcher.find()) {
+                        prNumber = matcher.group(1)   // plain String — serializable
+                    }
+                    matcher = null                    // discard Matcher immediately
+
+                    if (!prNumber) {
                         echo "Not a PR merge commit — skipping approval check"
                         return
                     }
 
-                    def prNumber = prMatch[0][1]
-                    echo "Detected PR #${prNumber} — checking approval status on GitHub..."
+                    echo "Detected PR #${prNumber} — checking GitHub approval..."
 
+                    // FIX 2: write token to a temp file to avoid Windows expansion issues
+                    // then use the file in curl — no hanging, no quoting problems
                     def approved = false
                     withCredentials([string(credentialsId: 'github-token', variable: 'GH_TOKEN')]) {
+
+                        // Write a small curl config file with the token
+                        bat """
+                        @echo off
+                        echo -H "Authorization: token %GH_TOKEN%" > "%TEMP%\\curl_headers.txt"
+                        echo -H "Accept: application/vnd.github.v3+json" >> "%TEMP%\\curl_headers.txt"
+                        """
+
                         def response = bat(
                             script: """
-                            @curl -s ^
-                              -H "Authorization: token %GH_TOKEN%" ^
-                              -H "Accept: application/vnd.github.v3+json" ^
-                              https://api.github.com/repos/%GITHUB_REPO%/pulls/${prNumber}/reviews
+                            @curl -s --config "%TEMP%\\curl_headers.txt" ^
+                            https://api.github.com/repos/%GITHUB_REPO%/pulls/${prNumber}/reviews
                             """,
                             returnStdout: true
                         ).trim()
 
-                        echo "GitHub API raw response: ${response}"
+                        echo "GitHub API response: ${response}"
 
-                        // Parse JSON response
+                        // Parse JSON and check for APPROVED state
                         def reviews = readJSON text: response
-                        echo "Total reviews found: ${reviews.size()}"
+                        echo "Total reviews: ${reviews.size()}"
 
                         for (def review : reviews) {
-                            echo "Review by ${review.user.login}: ${review.state}"
+                            echo "  ${review.user.login} → ${review.state}"
                             if (review.state == 'APPROVED') {
                                 approved = true
-                                echo "APPROVED by: ${review.user.login}"
                             }
                         }
                     }
 
                     if (!approved) {
                         currentBuild.result = 'ABORTED'
-                        error("PR #${prNumber} was NOT approved — blocking deploy")
+                        error("PR #${prNumber} is NOT approved — blocking deploy")
                     }
 
-                    echo "PR #${prNumber} is APPROVED — proceeding to deploy"
+                    echo "PR #${prNumber} APPROVED — continuing to deploy"
                 }
             }
         }
@@ -92,7 +103,6 @@ pipeline {
         stage('Code Checkout') {
             steps {
                 checkout scm
-                echo "Checked out: ${env.GIT_COMMIT}"
             }
         }
 
@@ -100,6 +110,7 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'jwt_key', variable: 'JWT_KEY_FILE')]) {
                     bat """
+                    @echo off
                     "%SF_CLI%" org login jwt ^
                     --client-id %SF_CONSUMER_KEY% ^
                     --jwt-key-file "%JWT_KEY_FILE%" ^
@@ -114,6 +125,7 @@ pipeline {
         stage('Deploy to Org') {
             steps {
                 bat """
+                @echo off
                 "%SF_CLI%" deploy metadata ^
                 --target-org projectdemosfdc ^
                 --wait 10
@@ -130,7 +142,7 @@ pipeline {
             echo "Deployment failed — check console output"
         }
         aborted {
-            echo "Pipeline aborted — PR was not approved"
+            echo "Pipeline aborted — PR #${env.GIT_COMMIT} was not approved"
         }
         always {
             cleanWs()
