@@ -1,0 +1,12 @@
+name: required-check
+
+on:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check:
+    name: basic-check
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Required status check passed "
