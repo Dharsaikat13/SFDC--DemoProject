@@ -60,6 +60,7 @@ pipeline {
                             }
                         }
                     }
+                }
 
                     if (!approved) {
                         echo "❌ PR NOT approved → skipping build"
